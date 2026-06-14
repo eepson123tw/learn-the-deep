@@ -164,16 +164,14 @@ mindmap
         MAC / Frame / Switch
       L3 網路層
         IP / Router / 路由
-      L4 傳輸層
-        ::icon(fa fa-star)
+      L4 傳輸層 ★
         TCP
         UDP
       L5 會議層
         Session 管理
       L6 表示層
         TLS / 加密 / 編碼
-      L7 應用層
-        ::icon(fa fa-star)
+      L7 應用層 ★
         HTTP / HTTPS
         DNS / FTP / SMTP
     TCP 傳輸層
@@ -201,10 +199,10 @@ mindmap
         HTTP/2 → TCP
         HTTP/3 → QUIC/UDP
     跨層關聯
-      HTTP(L7) 依賴 TCP(L4)
-      HTTPS 依賴 TLS(L6)
-      TCP/UDP 依賴 IP(L3)
-      IP 依賴 MAC(L2)
+      HTTP L7 依賴 TCP L4
+      HTTPS 依賴 TLS L6
+      TCP UDP 依賴 IP L3
+      IP 依賴 MAC L2
 ```
 
 ---
