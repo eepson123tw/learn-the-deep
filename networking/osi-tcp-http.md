@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # 網路學習圖：OSI 七層 × TCP × HTTP
 
 > 一份從「整體鏈路」到「關聯心智圖」的網路學習筆記。
@@ -270,6 +272,77 @@ flowchart LR
 | L3 連通性 (ICMP) | `ping example.com` |
 
 > 💡 重點：**`curl -v` 主要讓你看到 L7/L6**（HTTP + TLS）；要看到 **L4 以下的 SYN/ACK、IP、MAC**，得用 `tcpdump` / `tshark` / Wireshark 等抓包工具。
+
+---
+
+## 📖 專有名詞解釋（Glossary）
+
+> 點一下術語即可跳到解釋；每則末尾的 **[↑ 回頂部](#top)** 可回到本頁開頭。
+
+**快速導覽**：
+[OSI](#g-osi) · [PDU](#g-pdu) · [封裝 Encapsulation](#g-encap) · [MAC](#g-mac) · [IP](#g-ip) · [ARP](#g-arp) · [TCP](#g-tcp) · [UDP](#g-udp) · [三向交握](#g-3whs) · [四向揮手](#g-4wave) · [序號 / ACK](#g-seqack) · [滑動視窗](#g-window) · [壅塞控制](#g-congestion) · [TLS / SSL](#g-tls) · [HTTP](#g-http) · [HTTPS](#g-https) · [DNS](#g-dns) · [ALPN](#g-alpn) · [QUIC](#g-quic) · [Port](#g-port)
+
+---
+
+<a id="g-osi"></a>
+**OSI 七層模型**　把網路通訊切成 7 個職責分明的層（實體→應用），讓不同廠商的設備能互通；實務上常與精簡的 TCP/IP 四層模型對照理解。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-pdu"></a>
+**PDU（Protocol Data Unit）**　每一層處理的「資料單位」名稱：L4 是 Segment、L3 是 Packet、L2 是 Frame、L1 是 Bit。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-encap"></a>
+**封裝（Encapsulation）**　資料往下層傳時，每層各加上自己的表頭（Header）層層包裝；到對端再逐層拆解還原。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-mac"></a>
+**MAC 位址**　網卡的實體位址（L2），用於「同一個區網內」的定址；只在當前這一段鏈路有意義，過了路由器就會被改寫。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-ip"></a>
+**IP 位址**　網路層（L3）的邏輯位址，負責跨網段的「找路」(路由)；端對端通訊時 IP 通常不變。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-arp"></a>
+**ARP（Address Resolution Protocol）**　在區網內用「IP」問出對應「MAC」的協定（廣播：誰是 X？我是，MAC 給你）。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-tcp"></a>
+**TCP（傳輸控制協定）**　連線導向的傳輸層協定，提供可靠、有序、不重複的位元流；靠序號、ACK、重送、流量/壅塞控制達成。HTTP 多數版本跑在它之上。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-udp"></a>
+**UDP（使用者資料包協定）**　無連線、不保證送達但快、開銷小；適合直播、遊戲、DNS、VoIP。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-3whs"></a>
+**三向交握（Three-way Handshake）**　TCP 建立連線的步驟：SYN → SYN+ACK → ACK，雙方各自確認「我能送、你能收」。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-4wave"></a>
+**四向揮手（Four-way Handshake）**　TCP 關閉連線：FIN → ACK → FIN → ACK；因為兩個方向各自獨立關閉，所以要四次。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-seqack"></a>
+**序號 / ACK（Sequence Number / Acknowledgement）**　序號讓接收端把封包排序去重；ACK 是「我收到了」的確認，沒收到就觸發重送。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-window"></a>
+**滑動視窗（Sliding Window）**　TCP 的流量控制：接收方告知還能收多少，發送方據此控制「一次最多送多少未確認的資料」。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-congestion"></a>
+**壅塞控制（Congestion Control）**　避免塞爆網路的機制，如慢啟動（Slow Start）、壅塞避免；和流量控制（保護接收端）是兩件事。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-tls"></a>
+**TLS / SSL**　位於 L6 的加密協定，為連線提供加密、完整性與身分驗證（憑證）。SSL 是舊稱，現多用 TLS。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-http"></a>
+**HTTP（超文字傳輸協定）**　L7 應用層協定，用請求（Method/Headers/Body）與回應（狀態碼/Headers/Body）溝通；本身無狀態。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-https"></a>
+**HTTPS**　HTTP + TLS：在 L6 加一層加密信封，等於「加密版 HTTP」。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-dns"></a>
+**DNS（網域名稱系統）**　把人類好記的域名（example.com）解析成 IP；多數查詢走 UDP:53。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-alpn"></a>
+**ALPN（Application-Layer Protocol Negotiation）**　TLS 交握時順便協商要用哪個應用協定（如 h2 / http/1.1）的擴充。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-quic"></a>
+**QUIC**　Google 提出、跑在 UDP 之上的傳輸協定，內建加密與多工，是 HTTP/3 的底層，解決 TCP 的隊頭阻塞。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-port"></a>
+**Port（連接埠）**　L4 用來區分同一台主機上不同服務/連線的編號（如 HTTP:80、HTTPS:443）。　<sub>[↑ 回頂部](#top)</sub>
 
 ---
 

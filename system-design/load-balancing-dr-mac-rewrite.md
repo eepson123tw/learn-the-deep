@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # 負載平衡深入：從一次搜尋，到鏈路層改寫 MAC 的 Direct Routing
 
 > 場景：你在 **淘寶** 或 **Google** 搜尋框打字按下 Enter。
@@ -314,6 +316,80 @@ mindmap
 1. **DR 模式 = 只改鏈路層的目的 MAC、IP 不動**，讓封包送到同網段的後端。
 2. **效益是 Direct Server Return**：回應繞過 LB 直接回客戶端，LB 只扛「進站」流量，吞吐量爆增。
 3. **沒有銀彈**：DR 要同網段、TUN 可跨機房、L7 能精細路由、Anycast 管全球入口——架構師依場景組合搭配。
+
+---
+
+## 📖 專有名詞解釋（Glossary）
+
+> 點一下術語即可跳到解釋；每則末尾的 **[↑ 回頂部](#top)** 可回到本頁開頭。
+
+**快速導覽**：
+[負載平衡 LB](#g-lb) · [VIP](#g-vip) · [Real Server](#g-rs) · [L4 / L7](#g-l4l7) · [LVS / IPVS](#g-lvs) · [NAT / DNAT / SNAT](#g-nat) · [DR 直接路由](#g-dr) · [TUN 隧道](#g-tun) · [DSR](#g-dsr) · [ARP 抑制](#g-arp) · [loopback](#g-loopback) · [Anycast](#g-anycast) · [ECMP](#g-ecmp) · [GSLB](#g-gslb) · [Maglev](#g-maglev) · [一致性雜湊](#g-hash) · [Service Mesh / Sidecar](#g-mesh) · [Sticky Session](#g-sticky) · [TLS 終結](#g-tlsterm) · [X-Forwarded-For](#g-xff) · [健康檢查](#g-health)
+
+---
+
+<a id="g-lb"></a>
+**負載平衡器（Load Balancer, LB）**　把進來的流量分攤到一群後端伺服器的設備/軟體，達成水平擴展、高可用與隱藏拓樸。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-vip"></a>
+**VIP（Virtual IP，虛擬 IP）**　對外公開的單一服務 IP；客戶端只看得到 VIP，背後可對應一群後端。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-rs"></a>
+**Real Server（RS，真實伺服器）**　LB 後面實際處理請求的後端機器。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-l4l7"></a>
+**L4 / L7 負載平衡**　L4 只看 IP+Port 做純轉發（快、吞吐高）；L7 解析 HTTP（URL/Cookie/Header），能精細路由、改寫、TLS 終結。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-lvs"></a>
+**LVS / IPVS**　LVS（Linux Virtual Server）是 Linux 內建的 L4 負載平衡；IPVS 是其核心模組，支援 NAT / DR / TUN 三種轉發模式。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-nat"></a>
+**NAT / DNAT / SNAT**　網路位址轉換。DNAT 改「目的 IP」(把 VIP 換成 RS)、SNAT 改「來源 IP」。LVS-NAT 模式進出都經過 LB，故 LB 易成瓶頸。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-dr"></a>
+**DR（Direct Routing，直接路由）**　LVS 模式之一：**只改寫鏈路層的目的 MAC、IP 完全不動**，把封包丟給同網段的 RS；回應由 RS 直接回客戶端，不經 LB。吞吐最高。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-tun"></a>
+**TUN（IP Tunnel，IP 隧道）**　LVS 模式之一：把原封包「再包一層 IP」送給 RS，因此 RS 可跨網段/機房；回應一樣直接回客戶端。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-dsr"></a>
+**DSR（Direct Server Return，直接回應）**　後端的回應**繞過 LB 直接回客戶端**。因 Web 回應遠大於請求，DSR 讓 LB 只扛進站流量，吞吐大增。DR / TUN 都屬於 DSR。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-arp"></a>
+**ARP 抑制（arp_ignore / arp_announce）**　DR 模式必做設定：讓 RS 雖在 loopback 綁了 VIP，卻**不回應**「誰是 VIP？」的 ARP 廣播，確保只有 LB 收到外來流量。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-loopback"></a>
+**loopback（環回介面，lo）**　主機內部的虛擬網卡（127.0.0.1）。DR 模式把 VIP 綁在 RS 的 loopback 上，讓 RS 認得「目的=VIP」的封包是給自己的。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-anycast"></a>
+**Anycast**　多個地點宣告**同一個 IP**，路由器自動把使用者導向「最近」的節點；常用於全球入口與抗 DDoS。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-ecmp"></a>
+**ECMP（Equal-Cost Multi-Path，等價多路徑）**　路由器把流量平均分散到多條等價路徑/多台 LB，是 Anycast 入口常搭配的硬體層分流。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-gslb"></a>
+**GSLB（Global Server Load Balancing，全域負載平衡）**　透過 DNS 依地理位置/健康/權重，把使用者導向不同機房，是跨資料中心的「就近接入」。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-maglev"></a>
+**Maglev**　Google 的軟體式 L4 負載平衡方案，結合一致性雜湊與高效封包處理，兼顧「連線黏著」與「均勻分配」。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-hash"></a>
+**一致性雜湊（Consistent Hashing）**　依連線特徵（如 srcIP+port）雜湊，讓同一連線穩定落在同一台 RS；加減機器時只搬動少數連線，避免大規模斷線。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-mesh"></a>
+**Service Mesh / Sidecar**　在每個服務旁部署代理（如 Envoy sidecar），由客戶端側直接做服務發現與負載平衡，免中央 LB；常見於微服務的「東西向」流量。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-sticky"></a>
+**Sticky Session（連線/會話黏著）**　讓同一使用者的後續請求固定落到同一台後端（靠 Cookie 或雜湊），對 WebSocket、未共享 session 的服務很重要。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-tlsterm"></a>
+**TLS 終結（TLS Termination）**　由 LB（通常 L7）負責解密 TLS，後端走明文；好處是集中管理憑證、卸載後端加解密負擔。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-xff"></a>
+**X-Forwarded-For（XFF）**　經過代理/LB 後，原始 client IP 會被放在這個 HTTP header；後端要看它（而非連線來源 IP）才拿得到真實使用者 IP。　<sub>[↑ 回頂部](#top)</sub>
+
+<a id="g-health"></a>
+**健康檢查（Health Check）**　LB 定期探測後端是否存活/正常，自動把壞掉的節點移出分流名單，達成高可用。　<sub>[↑ 回頂部](#top)</sub>
 
 ---
 
