@@ -13,6 +13,7 @@
 | 筆記 | 主題 | 內容 |
 |------|------|------|
 | [network-osi-tcp-http-learning.md](./network-osi-tcp-http-learning.md) | 電腦網路 | OSI 七層 × TCP × HTTP 學習圖、封裝鏈路、HTTPS 時序、心智圖、`curl -v` 抓包對照 |
+| [load-balancing-l2-dr-mac-rewrite.md](./load-balancing-l2-dr-mac-rewrite.md) | 架構 / 負載平衡 | 從一次搜尋出發：L4/L7 負載平衡、LVS 三模式、Direct Routing 改寫 MAC、DSR 效益、Anycast/Maglev/Service Mesh 等做法、對前端的影響 |
 
 ## 🎯 這個 repo 在做什麼
 
