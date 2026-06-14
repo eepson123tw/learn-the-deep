@@ -3,7 +3,7 @@
 # 負載平衡深入：從一次搜尋，到鏈路層改寫 MAC 的 Direct Routing
 
 > 場景：你在 **淘寶** 或 **Google** 搜尋框打字按下 Enter。
-> 這個請求怎麼穿過鏈路層、抵達負載平衡器（Load Balancer, LB）、再被分流到某一台後端伺服器？
+> 這個請求怎麼穿過鏈路層、抵達[負載平衡器（Load Balancer, LB）](#g-lb)、再被分流到某一台後端伺服器？
 > 為什麼大廠要「直接路由 + 改寫 MAC」？效益是什麼？還有哪些做法？
 >
 > 給已經熟悉前端的你，補齊**架構面 / 網路底層**的這一塊。
@@ -42,8 +42,8 @@ flowchart TD
 |------|------|
 | **水平擴展 (Scale out)** | 單機撐不住搜尋流量，用一群機器分攤 |
 | **高可用 (HA)** | 某台掛了，LB 自動把流量導到健康的機器 |
-| **健康檢查** | LB 定期探測後端，剔除壞掉的節點 |
-| **隱藏拓樸** | 對外只暴露一個 VIP（Virtual IP），後端 IP 不外露 |
+| **[健康檢查](#g-health)** | LB 定期探測後端，剔除壞掉的節點 |
+| **隱藏拓樸** | 對外只暴露一個 [VIP（Virtual IP）](#g-vip)，後端 IP 不外露 |
 | **彈性** | 尖峰加機器、離峰縮機器，對使用者無感 |
 
 > 對前端的類比：就像你在 CDN/反向代理後面放多台 Node 服務，差別在於**大廠的 LB 要扛每秒數百萬連線**，所以連「封包怎麼轉發」都要榨乾效能 → 才有了改寫 MAC 這種底層手法。
@@ -62,7 +62,7 @@ flowchart LR
     L7 --> L7D["🧠 聰明、可依路徑分流<br/>能改寫 header / TLS 終結<br/>例: Nginx, Envoy, AWS ALB"]
 ```
 
-| | **L4 (傳輸層)** | **L7 (應用層)** |
+| | **[L4](#g-l4l7) (傳輸層)** | **[L7](#g-l4l7) (應用層)** |
 |---|---|---|
 | 看什麼 | IP、Port | URL、Host、Cookie、Header |
 | 能力 | 純轉發 | 路徑分流、A/B、改寫、TLS 終結 |
@@ -76,13 +76,13 @@ flowchart LR
 
 ## 3. 主角登場：LVS 的三種轉發模式
 
-LVS（Linux Virtual Server）是 Linux 核心內建的 L4 負載平衡（IPVS 模組）。它有三種把封包送到後端（Real Server, RS）的模式：
+[LVS（Linux Virtual Server）](#g-lvs)是 Linux 核心內建的 L4 負載平衡（[IPVS](#g-lvs) 模組）。它有三種把封包送到後端（[Real Server, RS](#g-rs)）的模式：
 
 | 模式 | 手法 | 回應路徑 | 跨網段 | 吞吐 |
 |------|------|----------|--------|------|
-| **NAT** | 改寫目的 IP（像家用路由器） | 回應**要穿回 LB** | 可 | 低（LB 是瓶頸） |
-| **DR (Direct Routing)** | **改寫目的 MAC**，IP 不動 | 後端**直接回客戶端** | 否（同網段） | **極高** ⭐ |
-| **TUN (IP Tunnel)** | 把封包**再包一層 IP** 隧道 | 後端直接回客戶端 | 可（跨機房） | 高 |
+| **[NAT](#g-nat)** | 改寫目的 IP（像家用路由器） | 回應**要穿回 LB** | 可 | 低（LB 是瓶頸） |
+| **[DR (Direct Routing)](#g-dr)** | **改寫目的 MAC**，IP 不動 | 後端**直接回客戶端** | 否（同網段） | **極高** ⭐ |
+| **[TUN (IP Tunnel)](#g-tun)** | 把封包**再包一層 IP** 隧道 | 後端直接回客戶端 | 可（跨機房） | 高 |
 
 下面三節逐一拆解。
 
@@ -146,9 +146,9 @@ flowchart LR
 
 1. **LB 與所有 RS 必須在同一個二層網段（同一個區網/VLAN）**
    - 因為改 MAC 的轉發只在同網段有效（鏈路層不跨路由器）。
-2. **每台 RS 的 loopback 介面要綁 VIP**
+2. **每台 RS 的 [loopback](#g-loopback) 介面要綁 VIP**
    - 這樣 RS 才認得「目的 IP = VIP」的封包是給自己的，否則會丟棄。
-3. **必須抑制 RS 對 VIP 的 ARP 回應**（`arp_ignore` / `arp_announce`）
+3. **必須[抑制 RS 對 VIP 的 ARP 回應](#g-arp)**（`arp_ignore` / `arp_announce`）
    - 否則客戶端的 ARP 廣播「誰是 VIP？」時，RS 也跳出來搶答，流量就不經過 LB 了，整個機制崩潰。
 
 ```mermaid
@@ -169,7 +169,7 @@ flowchart LR
     R -->|"直接回 Client (DSR)"| C
 ```
 
-- 跟 DR 一樣是 **Direct Server Return**（回應不經 LB）。
+- 跟 DR 一樣是 **[Direct Server Return](#g-dsr)**（回應不經 LB）。
 - 差別：用 **IP 隧道封裝**，所以 RS **可以跨網段、跨機房**，不必和 LB 同一個二層網段。
 - 代價：多一層封裝，RS 要支援隧道解封裝。
 
@@ -238,14 +238,14 @@ flowchart TD
 
 | 做法 | 層級 | 分流依據 | 適合場景 | 注意 |
 |------|------|----------|----------|------|
-| **DNS / GSLB** | — | 地理、加權 | 跨機房就近接入 | DNS 快取延遲、切換不即時 |
-| **Anycast + ECMP** | L3 | 路由就近 | 全球入口、抗 DDoS | 路由變動可能斷連線 |
+| **DNS / [GSLB](#g-gslb)** | — | 地理、加權 | 跨機房就近接入 | DNS 快取延遲、切換不即時 |
+| **[Anycast](#g-anycast) + [ECMP](#g-ecmp)** | L3 | 路由就近 | 全球入口、抗 DDoS | 路由變動可能斷連線 |
 | **LVS-NAT** | L4 | IP/Port | 小規模、簡單 | LB 是雙向瓶頸 |
 | **LVS-DR** ⭐ | L2 | 改寫 MAC | 同機房、超高吞吐 | 須同網段、ARP 設定 |
 | **LVS-TUN** | L3 | IP 隧道 | 跨機房 + DSR | RS 須支援隧道 |
-| **Maglev** | L4 | 一致性雜湊 | 超大規模、連線一致性 | Google 論文方案 |
+| **[Maglev](#g-maglev)** | L4 | 一致性雜湊 | 超大規模、連線一致性 | Google 論文方案 |
 | **Nginx/Envoy** | L7 | URL/Cookie | 微服務精細路由 | 要解析 HTTP，較重 |
-| **Service Mesh** | L7(客戶端) | 服務發現 | 微服務內部東西向流量 | 維運複雜度高 |
+| **[Service Mesh](#g-mesh)** | L7(客戶端) | 服務發現 | 微服務內部東西向流量 | 維運複雜度高 |
 
 ### 補充：一致性雜湊（為什麼大廠 L4 LB 愛用）
 
@@ -257,7 +257,7 @@ flowchart LR
 ```
 
 - 普通「輪詢 (round-robin)」在**加減機器**時會把大量既有連線打散。
-- **一致性雜湊 (consistent hashing)** 讓同一個連線穩定落在同一台 RS，加減機器只影響少數連線。Google 的 **Maglev** 就是用這招做到「連線黏著」+「均勻分配」。
+- **[一致性雜湊 (consistent hashing)](#g-hash)** 讓同一個連線穩定落在同一台 RS，加減機器只影響少數連線。Google 的 **Maglev** 就是用這招做到「連線黏著」+「均勻分配」。
 
 ---
 
@@ -268,11 +268,11 @@ flowchart LR
 | 前端議題 | 背後的負載平衡關聯 |
 |----------|---------------------|
 | **WebSocket / SSE 長連線** | 需要 LB 支援「連線黏著」(sticky / 一致性雜湊)，否則重連可能落到別台 |
-| **登入 session 飄移** | 多台後端時，session 要嘛存共享 store(Redis)，要嘛靠 sticky session（Cookie 綁 LB） |
+| **登入 session 飄移** | 多台後端時，session 要嘛存共享 store(Redis)，要嘛靠 [sticky session](#g-sticky)（Cookie 綁 LB） |
 | **灰度發布 / A·B 測試** | 靠 **L7 LB**（Envoy/ALB）依 Header/Cookie 把你導到新版本 |
 | **就近接入 / TTFB 優化** | 靠 **Anycast + GSLB + CDN**，本質也是負載平衡的一環 |
-| **TLS 終結在哪** | L7 LB 常負責 TLS 終結，後端走明文 → 影響你對 `X-Forwarded-*` header 的處理 |
-| **取得真實 client IP** | DSR/代理會改寫來源資訊 → 後端要看 `X-Forwarded-For` / `Proxy Protocol` |
+| **[TLS 終結](#g-tlsterm)在哪** | L7 LB 常負責 TLS 終結，後端走明文 → 影響你對 `X-Forwarded-*` header 的處理 |
+| **取得真實 client IP** | DSR/代理會改寫來源資訊 → 後端要看 [`X-Forwarded-For`](#g-xff) / `Proxy Protocol` |
 
 > 例：你做即時聊天用 WebSocket，部署到一群 Node 後面接 LB，如果 LB 用單純輪詢、又沒共享 session，使用者一斷線重連就「換了一台、狀態不見」——這就是負載平衡策略沒選對的後果。
 
@@ -321,7 +321,7 @@ mindmap
 
 ## 📖 專有名詞解釋（Glossary）
 
-> 點一下術語即可跳到解釋；每則末尾的 **[↑ 回頂部](#top)** 可回到本頁開頭。
+> 內文中**標成連結的專有名詞，點一下即可跳到這裡**查看解釋；下方快速導覽也可直接點。每則解釋末尾的 [↑ 回頂部](#top) 可回到本頁開頭。
 
 **快速導覽**：
 [負載平衡 LB](#g-lb) · [VIP](#g-vip) · [Real Server](#g-rs) · [L4 / L7](#g-l4l7) · [LVS / IPVS](#g-lvs) · [NAT / DNAT / SNAT](#g-nat) · [DR 直接路由](#g-dr) · [TUN 隧道](#g-tun) · [DSR](#g-dsr) · [ARP 抑制](#g-arp) · [loopback](#g-loopback) · [Anycast](#g-anycast) · [ECMP](#g-ecmp) · [GSLB](#g-gslb) · [Maglev](#g-maglev) · [一致性雜湊](#g-hash) · [Service Mesh / Sidecar](#g-mesh) · [Sticky Session](#g-sticky) · [TLS 終結](#g-tlsterm) · [X-Forwarded-For](#g-xff) · [健康檢查](#g-health)

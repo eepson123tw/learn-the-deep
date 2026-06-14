@@ -9,21 +9,21 @@
 
 ## 1. OSI 七層模型總覽（由上而下）
 
-| 層 | 名稱 | 主要職責 | 資料單位 (PDU) | 代表協定 / 範例 |
+| 層 | 名稱 | 主要職責 | 資料單位 ([PDU](#g-pdu)) | 代表協定 / 範例 |
 |----|------|----------|----------------|------------------|
-| 7 | 應用層 Application | 提供使用者操作的網路服務介面 | Data | HTTP, HTTPS, DNS, FTP, SMTP |
-| 6 | 表示層 Presentation | 編碼、加密、壓縮、格式轉換 | Data | TLS/SSL, JPEG, JSON, UTF-8 |
+| 7 | 應用層 Application | 提供使用者操作的網路服務介面 | Data | [HTTP](#g-http), [HTTPS](#g-https), [DNS](#g-dns), FTP, SMTP |
+| 6 | 表示層 Presentation | 編碼、加密、壓縮、格式轉換 | Data | [TLS/SSL](#g-tls), JPEG, JSON, UTF-8 |
 | 5 | 會議層 Session | 建立 / 維持 / 終止對話連線 | Data | TLS session, RPC, NetBIOS |
-| 4 | 傳輸層 Transport | 端對端傳輸、可靠性、流量控制 | Segment (TCP) / Datagram (UDP) | **TCP**, UDP |
-| 3 | 網路層 Network | 邏輯定址與路由（找路） | Packet | IP, ICMP, 路由器 Router |
-| 2 | 資料連結層 Data Link | 實體定址、訊框、錯誤偵測 | Frame | Ethernet, MAC, 交換器 Switch |
+| 4 | 傳輸層 Transport | 端對端傳輸、可靠性、流量控制 | Segment ([TCP](#g-tcp)) / Datagram ([UDP](#g-udp)) | **TCP**, UDP |
+| 3 | 網路層 Network | 邏輯定址與路由（找路） | Packet | [IP](#g-ip), ICMP, 路由器 Router |
+| 2 | 資料連結層 Data Link | 實體定址、訊框、錯誤偵測 | Frame | Ethernet, [MAC](#g-mac), 交換器 Switch |
 | 1 | 實體層 Physical | 位元在介質上的傳輸 | Bit | 網路線, 光纖, 電壓訊號 |
 
 ---
 
 ## 2. 資料封裝鏈路圖（Encapsulation）
 
-> 資料從「應用層往下送」會層層包裝表頭（Header），到對端再「往上拆解」。
+> **[封裝 Encapsulation](#g-encap)**：資料從「應用層往下送」會層層包裝表頭（Header），到對端再「往上拆解」。
 
 ```mermaid
 flowchart TD
@@ -93,6 +93,8 @@ sequenceDiagram
 
 ## 4. TCP 核心機制聚焦
 
+> 關鍵詞：[序號 / ACK](#g-seqack)、[滑動視窗](#g-window)（流量控制）、[壅塞控制](#g-congestion)；連線靠 [Port](#g-port) 區分。
+
 ```mermaid
 flowchart LR
     TCP["TCP<br/>傳輸控制協定"]
@@ -124,6 +126,8 @@ flowchart LR
 ---
 
 ## 5. HTTP 核心結構聚焦
+
+> [HTTP](#g-http) 演進到 HTTP/3 改走 [QUIC](#g-quic)（基於 UDP）。
 
 ```mermaid
 flowchart TD
@@ -211,10 +215,10 @@ mindmap
 
 ## 7. 一句話記憶法
 
-- **OSI 由上到下助記**：`應 表 會 傳 網 連 實`（All People Seem To Need Data Processing）。
+- **[OSI](#g-osi) 由上到下助記**：`應 表 會 傳 網 連 實`（All People Seem To Need Data Processing）。
 - **HTTP 與 TCP 的關係**：HTTP 是「信件內容」，TCP 是「掛號郵差」，IP 是「地址」，MAC 是「最後一哩的門牌」。
 - **HTTPS = HTTP + TLS**：在 L6 加一層加密信封。
-- **三向交握 vs 四向揮手**：開門握三次手，關門要揮四次手（因為關閉是雙向各自確認）。
+- **[三向交握](#g-3whs) vs [四向揮手](#g-4wave)**：開門握三次手，關門要揮四次手（因為關閉是雙向各自確認）。
 
 ---
 
@@ -233,7 +237,7 @@ $ curl -v https://example.com
 |---------------------|------|--------|
 | `* Trying 93.184.216.34:443...` | DNS 已解析出 IP，準備連線（域名→IP 在 L7 DNS 完成，定址屬 L3） | L7 DNS → L3 IP |
 | `* Connected to example.com (93.184.216.34) port 443` | TCP 三向交握完成，socket 建立 | **L4 TCP** |
-| `* ALPN: offers h2,http/1.1` | 協商使用的 HTTP 版本 | L7 / L6 |
+| `* ALPN: offers h2,http/1.1` | [ALPN](#g-alpn) 協商使用的 HTTP 版本 | L7 / L6 |
 | `* TLSv1.3 (OUT), TLS handshake, ClientHello` | TLS 交握開始 | **L6 表示層 (TLS)** |
 | `* Server certificate:` <br>`*  subject: CN=example.com` <br>`*  SSL certificate verify ok.` | 驗證伺服器憑證、建立加密通道 | L6 / L5 |
 | `> GET / HTTP/2` <br>`> Host: example.com` <br>`> User-Agent: curl/8.x` | **送出** HTTP 請求行與請求標頭 | **L7 應用層 (HTTP)** |
@@ -277,7 +281,7 @@ flowchart LR
 
 ## 📖 專有名詞解釋（Glossary）
 
-> 點一下術語即可跳到解釋；每則末尾的 **[↑ 回頂部](#top)** 可回到本頁開頭。
+> 內文中**標成連結的專有名詞，點一下即可跳到這裡**查看解釋；下方快速導覽也可直接點。每則解釋末尾的 [↑ 回頂部](#top) 可回到本頁開頭。
 
 **快速導覽**：
 [OSI](#g-osi) · [PDU](#g-pdu) · [封裝 Encapsulation](#g-encap) · [MAC](#g-mac) · [IP](#g-ip) · [ARP](#g-arp) · [TCP](#g-tcp) · [UDP](#g-udp) · [三向交握](#g-3whs) · [四向揮手](#g-4wave) · [序號 / ACK](#g-seqack) · [滑動視窗](#g-window) · [壅塞控制](#g-congestion) · [TLS / SSL](#g-tls) · [HTTP](#g-http) · [HTTPS](#g-https) · [DNS](#g-dns) · [ALPN](#g-alpn) · [QUIC](#g-quic) · [Port](#g-port)
