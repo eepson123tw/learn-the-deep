@@ -2,28 +2,47 @@
 
 > 一邊讀書、一邊記錄的學習筆記 repo。深入底層、把觀念畫成圖。
 
-目前主線：閱讀《**架構師的自我修煉**》，搭配電腦網路、系統設計等基礎主題的延伸筆記。
+目前主線：閱讀《**架構師的自我修煉**》，搭配電腦網路、系統設計等底層主題的延伸筆記。
 
 ## 📚 目前進度
 
-- 📖 正在讀：《架構師的自我修煉》
+- 📖 正在讀：《架構師的自我修煉》 → [讀書筆記](./books/架構師的自我修煉/)
 
-## 🗂️ 筆記索引
+## 🗂️ 檔案結構
 
-| 筆記 | 主題 | 內容 |
+依主題分類歸檔，每個分類資料夾內有自己的 README 索引。
+
+```
+learn-the-deep/
+├── README.md                ← 你在這
+├── networking/              🌐 網路底層
+│   └── osi-tcp-http.md
+├── system-design/          🏗️ 系統設計 / 架構
+│   └── load-balancing-dr-mac-rewrite.md
+├── operating-system/       🖥️ 作業系統（規劃中）
+├── database/               🗄️ 資料庫 / 儲存（規劃中）
+└── books/                  📖 讀書筆記
+    └── 架構師的自我修煉/
+```
+
+## 📑 筆記索引
+
+| 分類 | 筆記 | 內容 |
 |------|------|------|
-| [network-osi-tcp-http-learning.md](./network-osi-tcp-http-learning.md) | 電腦網路 | OSI 七層 × TCP × HTTP 學習圖、封裝鏈路、HTTPS 時序、心智圖、`curl -v` 抓包對照 |
-| [load-balancing-l2-dr-mac-rewrite.md](./load-balancing-l2-dr-mac-rewrite.md) | 架構 / 負載平衡 | 從一次搜尋出發：L4/L7 負載平衡、LVS 三模式、Direct Routing 改寫 MAC、DSR 效益、Anycast/Maglev/Service Mesh 等做法、對前端的影響 |
+| [🌐 networking](./networking/) | [osi-tcp-http.md](./networking/osi-tcp-http.md) | OSI 七層 × TCP × HTTP 學習圖、封裝鏈路、HTTPS 時序、心智圖、`curl -v` 抓包對照 |
+| [🏗️ system-design](./system-design/) | [load-balancing-dr-mac-rewrite.md](./system-design/load-balancing-dr-mac-rewrite.md) | 從一次搜尋出發：L4/L7 負載平衡、LVS 三模式、Direct Routing 改寫 MAC、DSR 效益、Anycast/Maglev/Service Mesh、對前端的影響 |
 
 ## 🎯 這個 repo 在做什麼
 
 - 把讀到的觀念整理成**可視化筆記**（大量使用 Mermaid 圖：流程圖、時序圖、心智圖）
 - 從「整體鏈路」到「關聯心智圖」，建立主題之間的連結
-- 邊讀邊記，持續累積
+- 依主題歸檔，邊讀邊記、持續累積
 
 ## 🔧 渲染說明
 
 筆記內的圖使用 [Mermaid](https://mermaid.js.org/)，在 GitHub、VS Code（裝 Mermaid 外掛）、Obsidian 等皆可直接渲染。
+
+> Mermaid `mindmap` 的節點文字避免使用括號 `()` 與 `::icon`，否則 GitHub 會 parse error。
 
 ---
 
